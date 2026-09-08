@@ -1,0 +1,28 @@
+import { chromium } from 'playwright';
+const base = 'http://localhost:5173';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+const errors = [];
+page.on('pageerror', (e) => errors.push(e.message));
+page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+
+await page.goto(base + '/home', { waitUntil: 'networkidle' });
+await page.locator('header button').last().click();
+await page.waitForTimeout(150);
+await page.getByRole('button', { name: /Logout/ }).click();
+await page.waitForTimeout(300);
+await page.getByRole('button', { name: /Ananya Bose/ }).click();
+await page.click('button[type="submit"]');
+await page.waitForTimeout(500);
+
+await page.goto(base + '/admin/users', { waitUntil: 'networkidle' });
+await page.waitForTimeout(300);
+// Click the second card (skip the first "You" row) to confirm row-click navigation works in card mode.
+const cards = page.locator('.space-y-3.sm\\:hidden > div');
+await cards.nth(1).click();
+await page.waitForTimeout(400);
+console.log('URL after card click:', page.url());
+await page.screenshot({ path: '.smoke/card_click_result.png' });
+
+console.log('errors:', errors.length ? errors.join('\n') : 'none');
+await browser.close();
