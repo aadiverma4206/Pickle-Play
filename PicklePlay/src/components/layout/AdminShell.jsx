@@ -26,9 +26,12 @@ const NAV_ITEMS = [
   { key: 'roles', to: '/admin/roles', label: 'Roles & Permissions', icon: ShieldCheck },
 ];
 
+import RoleActivityTrackerModal from '../ui/RoleActivityTrackerModal';
+
 export default function AdminShell() {
   const user = useCurrentUser();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [trackerOpen, setTrackerOpen] = useState(false);
   const sections = user ? adminSectionsFor(user.role) : [];
   const items = NAV_ITEMS.filter((i) => sections.includes(i.key));
 
@@ -82,6 +85,15 @@ export default function AdminShell() {
           </button>
           <p className="text-sm font-semibold text-ink-800">Admin Panel</p>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTrackerOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-all shadow-sm"
+              title="Audit and track role activities in real time"
+            >
+              <ShieldCheck className="size-4 text-purple-600" />
+              <span className="hidden sm:inline">Role Tracker</span>
+            </button>
             <NotificationBell />
             <DemoUserSwitcher />
           </div>
@@ -96,6 +108,8 @@ export default function AdminShell() {
           <X className="size-5" />
         </button>
       )}
+
+      <RoleActivityTrackerModal open={trackerOpen} onClose={() => setTrackerOpen(false)} />
     </div>
   );
 }

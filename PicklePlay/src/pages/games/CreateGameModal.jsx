@@ -33,15 +33,18 @@ export default function CreateGameModal({ open, onClose, onCreated }) {
     setError('');
     if (!form.clubId || !form.courtId) { setError('Please select a club and court.'); return; }
     if (form.startTime >= form.endTime) { setError('End time must be after start time.'); return; }
+    const fee = Number(form.entryFee) || 0;
+    if (fee > 0 && (fee < 200 || fee > 200000)) {
+      setError('Entry fee must be between ₹200 and ₹2,00,000 (or ₹0 for free games).');
+      return;
+    }
     setSubmitting(true);
     setTimeout(() => {
-      const result = createGame(user.id, { ...form, maxPlayers: Number(form.maxPlayers), entryFee: Number(form.entryFee) });
+      const result = createGame(user.id, { ...form, maxPlayers: Number(form.maxPlayers), entryFee: fee });
       setSubmitting(false);
       if (!result.ok) { setError(result.error); return; }
       toast(`"${result.game.name}" is live and open for joining!`, 'success');
       onClose();
-      // Admin usage (see AdminGamesPage) passes onCreated to stay in the
-      // admin panel instead of jumping to the player-facing game page.
       if (onCreated) onCreated(result.game);
       else navigate(`/games/${result.game.id}`);
     }, 250);
@@ -101,8 +104,8 @@ export default function CreateGameModal({ open, onClose, onCreated }) {
           <FormRow label="Maximum Players">
             <Input type="number" min={2} max={16} value={form.maxPlayers} onChange={(e) => setForm({ ...form, maxPlayers: e.target.value })} />
           </FormRow>
-          <FormRow label="Entry Fee (₹)">
-            <Input type="number" min={0} value={form.entryFee} onChange={(e) => setForm({ ...form, entryFee: e.target.value })} />
+          <FormRow label="Entry Fee (₹)" help="Free play is ₹0. Paid matches must be ₹200 to ₹2,00,000.">
+            <Input type="number" min={0} max={200000} value={form.entryFee} onChange={(e) => setForm({ ...form, entryFee: e.target.value })} />
           </FormRow>
         </div>
         <FormRow label="Description">

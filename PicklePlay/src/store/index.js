@@ -24,7 +24,7 @@ import { createUiSlice } from './slices/uiSlice';
 // stale localStorage snapshot from an earlier prototype iteration breaking
 // the app (Spec 64: "Refreshing the prototype does not destroy local state",
 // which assumes the *shape* of that state is still valid).
-export const SEED_VERSION = 5;
+export const SEED_VERSION = 6;
 
 export const useStore = create()(
   persist(

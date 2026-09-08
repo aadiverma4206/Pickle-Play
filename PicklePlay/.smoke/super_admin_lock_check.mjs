@@ -21,7 +21,6 @@ await page.waitForTimeout(300);
 await page.screenshot({ path: '.smoke/super_admin_lock.png' });
 
 // Confirm there is no "Change" button next to the Super Admin row (Ananya Bose).
-const superAdminRow = page.locator('div', { hasText: 'Ananya Bose' }).last();
 const changeButtonCount = await page.getByRole('button', { name: 'Change' }).count();
 console.log('Total "Change" buttons visible:', changeButtonCount);
 console.log('Permanent label visible near Super Admin:', await page.getByText('Permanent').count());

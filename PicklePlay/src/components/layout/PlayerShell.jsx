@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import clsx from 'clsx';
-import { Home, Search, MapPinned, Users, Trophy, LineChart, CalendarCheck, Award } from 'lucide-react';
+import { Home, Search, MapPinned, Users, Trophy, LineChart, CalendarCheck, Award, ShieldCheck } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import DemoUserSwitcher from './DemoUserSwitcher';
+import RoleActivityTrackerModal from '../ui/RoleActivityTrackerModal';
 
 const DESKTOP_NAV = [
   { to: '/home', label: 'Home', icon: Home },
@@ -23,6 +25,8 @@ const MOBILE_NAV = [
 ];
 
 export default function PlayerShell() {
+  const [trackerOpen, setTrackerOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-ink-50">
       <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/90 backdrop-blur">
@@ -45,6 +49,15 @@ export default function PlayerShell() {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTrackerOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-court-200 bg-court-50 px-2.5 py-1.5 text-xs font-semibold text-court-800 hover:bg-court-100 hover:border-court-300 transition-all shadow-sm"
+              title="Track role capabilities and real-time activity"
+            >
+              <ShieldCheck className="size-4 text-court-600" />
+              <span className="hidden md:inline">Role Tracker</span>
+            </button>
             <NotificationBell />
             <DemoUserSwitcher />
           </div>
@@ -81,6 +94,8 @@ export default function PlayerShell() {
           </NavLink>
         ))}
       </nav>
+
+      <RoleActivityTrackerModal open={trackerOpen} onClose={() => setTrackerOpen(false)} />
     </div>
   );
 }

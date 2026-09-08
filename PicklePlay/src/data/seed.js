@@ -19,6 +19,24 @@ function name(i) {
   return `${FIRST_NAMES[i % FIRST_NAMES.length]} ${LAST_NAMES[i % LAST_NAMES.length]}`;
 }
 
+const AVATARS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80',
+];
+
+const CLUB_PHOTOS = [
+  ['https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1622163642998-1ea32b0bbc67?w=800&auto=format&fit=crop&q=80'],
+  ['https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=800&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80'],
+  ['https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=80'],
+  ['https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&auto=format&fit=crop&q=80'],
+];
+
 export function buildSeed() {
   const users = [];
   const ratings = [];
@@ -71,10 +89,11 @@ export function buildSeed() {
   });
 
   function u(id, role, fullName, email, mobile, city) {
+    const avatarUrl = AVATARS[Math.abs(hash(id)) % AVATARS.length];
     return {
       id, role, name: fullName, email, mobile,
       password: 'Password@123',
-      profileImage: null,
+      profileImage: avatarUrl,
       gender: ['Male', 'Female'][id.length % 2],
       dob: '1996-05-14',
       city, area: 'Central',
@@ -88,14 +107,14 @@ export function buildSeed() {
 
   // ---- Clubs & Courts -------------------------------------------------------
   const clubs = [
-    club('clb-1', 'Smash Point Pickleball Club', 'Bengaluru', ['usr-cm1'], 'ACTIVE'),
-    club('clb-2', 'Baseline Sports Arena', 'Bengaluru', ['usr-cm1'], 'ACTIVE'),
-    club('clb-3', 'Dink & Drive Courts', 'Pune', ['usr-cm2'], 'ACTIVE'),
-    club('clb-4', 'Kitchen Line Pickleball Hub', 'Mumbai', [], 'PENDING'),
+    club('clb-1', 'Smash Point Pickleball Club', 'Bengaluru', ['usr-cm1'], 'ACTIVE', 0),
+    club('clb-2', 'Baseline Sports Arena', 'Bengaluru', ['usr-cm1'], 'ACTIVE', 1),
+    club('clb-3', 'Dink & Drive Courts', 'Pune', ['usr-cm2'], 'ACTIVE', 2),
+    club('clb-4', 'Kitchen Line Pickleball Hub', 'Mumbai', [], 'PENDING', 3),
   ];
-  function club(id, clubName, city, managerIds, status) {
+  function club(id, clubName, city, managerIds, status, photoIdx = 0) {
     return {
-      id, name: clubName, logo: null, photos: [],
+      id, name: clubName, logo: null, photos: CLUB_PHOTOS[photoIdx % CLUB_PHOTOS.length] || [],
       address: `${clubName}, MG Road`, city,
       location: { lat: 12.97 + Math.random() * 0.1, lng: 77.59 + Math.random() * 0.1 },
       contact: '080-4000-1000',
@@ -213,14 +232,18 @@ export function buildSeed() {
   // ---- Tournaments -------------------------------------------------------------
   const tournaments = [
     {
-      id: 'tn-1', name: 'PicklePlay City Open 2026', banner: null, organizerId: 'usr-ops', venueClubId: 'clb-1',
+      id: 'tn-1', name: 'PicklePlay City Open 2026',
+      banner: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&auto=format&fit=crop&q=80',
+      organizerId: 'usr-ops', venueClubId: 'clb-1',
       startDate: d(20), endDate: d(21), registrationStart: d(-10), registrationEnd: d(15),
       entryFee: 500, minParticipants: 8, maxParticipants: 16, category: 'Doubles', skillLevel: 'Advanced',
       format: 'Knockout', prize: '₹25,000 Prize Pool', rules: 'Standard USAPA rules apply.',
       status: 'REGISTRATION_OPEN', createdAt: iso(-15),
     },
     {
-      id: 'tn-2', name: 'Baseline Summer Smash', banner: null, organizerId: 'usr-cm1', venueClubId: 'clb-2',
+      id: 'tn-2', name: 'Baseline Summer Smash',
+      banner: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=1200&auto=format&fit=crop&q=80',
+      organizerId: 'usr-cm1', venueClubId: 'clb-2',
       startDate: d(-14), endDate: d(-13), registrationStart: d(-40), registrationEnd: d(-16),
       entryFee: 300, minParticipants: 4, maxParticipants: 8, category: 'Singles', skillLevel: 'Intermediate',
       format: 'Knockout', prize: '₹10,000 Prize Pool', rules: 'Standard USAPA rules apply.',
@@ -371,10 +394,11 @@ export function buildSeed() {
 
   // ---- Audit logs ---------------------------------------------------------------------
   const auditLogs = [
-    { id: 'aud-1', adminId: 'usr-super', action: 'RATING_ADJUSTED', module: 'Ratings', recordId: 'usr-1', oldValue: '1280', newValue: '1300', createdAt: iso(-20) },
-    { id: 'aud-2', adminId: 'usr-ops', action: 'GAME_CANCELLED', module: 'Games', recordId: 'gm-7', oldValue: 'OPEN_FOR_JOINING', newValue: 'CANCELLED', createdAt: iso(-3) },
-    { id: 'aud-3', adminId: 'usr-cm1', action: 'COURT_MAINTENANCE_SET', module: 'Courts', recordId: 'crt-2-3', oldValue: 'AVAILABLE', newValue: 'MAINTENANCE', createdAt: iso(-10) },
-    { id: 'aud-4', adminId: 'usr-finance', action: 'REFUND_APPROVED', module: 'Finance', recordId: 'bk-4', oldValue: 'REFUND_PENDING', newValue: 'REFUNDED', createdAt: iso(-4) },
+    { id: 'aud-1', adminId: 'usr-super', actorId: 'usr-super', actorRole: 'SUPER_ADMIN', actorName: 'Ananya Bose', action: 'RATING_ADJUSTED', module: 'Ratings', recordId: 'usr-1', oldValue: '1280', newValue: '1300', securityTag: 'TR-SUP-001', note: 'Manual skill adjustment per review', createdAt: iso(-20) },
+    { id: 'aud-2', adminId: 'usr-ops', actorId: 'usr-ops', actorRole: 'OPS_ADMIN', actorName: 'Vikram Rao', action: 'GAME_CANCELLED', module: 'Games', recordId: 'gm-7', oldValue: 'OPEN_FOR_JOINING', newValue: 'CANCELLED', securityTag: 'TR-OPS-002', note: 'Weather disruption cancellation', createdAt: iso(-3) },
+    { id: 'aud-3', adminId: 'usr-cm1', actorId: 'usr-cm1', actorRole: 'CLUB_MANAGER', actorName: 'Sanjay Gupta', action: 'COURT_MAINTENANCE_SET', module: 'Courts', recordId: 'crt-2-3', oldValue: 'AVAILABLE', newValue: 'MAINTENANCE', securityTag: 'TR-CLB-003', note: 'Court 3 net repair and line repainting', createdAt: iso(-10) },
+    { id: 'aud-4', adminId: 'usr-finance', actorId: 'usr-finance', actorRole: 'FINANCE_ADMIN', actorName: 'Meera Iyer', action: 'REFUND_APPROVED', module: 'Finance', recordId: 'bk-4', oldValue: 'REFUND_PENDING', newValue: 'REFUNDED', securityTag: 'TR-FIN-004', note: 'Rain check full automatic refund', createdAt: iso(-4) },
+    { id: 'aud-5', adminId: 'usr-1', actorId: 'usr-1', actorRole: 'PLAYER', actorName: 'Rahul Sharma', action: 'GAME_CREATED', module: 'Games', recordId: 'gm-1', oldValue: null, newValue: 'OPEN_FOR_JOINING', securityTag: 'TR-PLA-005', note: 'Player-created match with protected ₹250 entry fee', createdAt: iso(-1) },
   ];
 
   // ---- Settings (Spec Section 50) -------------------------------------------------------
@@ -395,7 +419,7 @@ export function buildSeed() {
     communityEvents, eventParticipants, challenges, challengeProgress,
     performance, ratings, achievements, userAchievements,
     notifications, tickets, auditLogs, settings,
-    seedVersion: 5,
+    seedVersion: 6,
   };
 }
 

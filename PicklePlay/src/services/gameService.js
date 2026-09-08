@@ -18,11 +18,36 @@ export function createGame(organizerId, data) {
   const organizer = store.getUser(organizerId);
   if (!organizer || organizer.status !== 'ACTIVE') return { ok: false, error: 'You cannot create a game right now.' };
 
-  const game = store.createGameRecord({ ...data, organizerId });
+  let sanitizedEntryFee = Number(data.entryFee) || 0;
+  if (sanitizedEntryFee > 0) {
+    if (sanitizedEntryFee < 200) sanitizedEntryFee = 200;
+    if (sanitizedEntryFee > 200000) sanitizedEntryFee = 200000;
+  }
+
+  const isPlayerCreator = organizer.role === 'PLAYER';
+  const game = store.createGameRecord({
+    ...data,
+    entryFee: sanitizedEntryFee,
+    organizerId,
+    createdByPlayer: isPlayerCreator,
+    creatorRole: organizer.role,
+  });
+
   store.transitionGame(game.id, 'PUBLISHED');
   store.transitionGame(game.id, 'OPEN_FOR_JOINING');
-  store.addGamePlayer(game.id, organizerId, 'CONFIRMED', { paymentStatus: data.entryFee > 0 ? 'SUCCESS' : 'N/A' });
+  store.addGamePlayer(game.id, organizerId, 'CONFIRMED', { paymentStatus: sanitizedEntryFee > 0 ? 'SUCCESS' : 'N/A' });
   notify(organizerId, 'Game Published', `"${game.name}" is live and open for players to join.`, 'GAME_PUBLISHED', 'GAME', game.id);
+
+  store.logAudit(
+    organizerId,
+    'GAME_CREATED',
+    'Games',
+    game.id,
+    null,
+    'OPEN_FOR_JOINING',
+    `Created "${game.name}" (Role: ${organizer.role}, Fee: ₹${sanitizedEntryFee})`
+  );
+
   return { ok: true, game: store.getGame(game.id) };
 }
 
@@ -50,6 +75,7 @@ export function joinGame(gameId, userId) {
     const position = store.waitlistForGame(gameId).length + 1;
     store.addGamePlayer(gameId, userId, 'WAITLISTED', { waitlistPosition: position });
     notify(userId, 'Added to Waitlist', `"${game.name}" is full — you're #${position} on the waitlist.`, 'GAME_WAITLISTED', 'GAME', gameId);
+    store.logAudit(userId, 'GAME_WAITLIST_JOINED', 'Games', gameId, null, `POS_${position}`, `${user.name} waitlisted #${position}`);
     return { ok: true, status: 'WAITLISTED', position };
   }
 
@@ -72,6 +98,8 @@ export function joinGame(gameId, userId) {
   if (game.entryFee > 0) notify(userId, 'Payment Successful', `₹${game.entryFee} paid for "${game.name}".`, 'PAYMENT_SUCCESS', 'GAME', gameId);
   notify(game.organizerId, 'New Player Joined', `${user.name} joined your game "${game.name}".`, 'GAME_JOINED', 'GAME', gameId);
 
+  store.logAudit(userId, 'GAME_JOINED', 'Games', gameId, null, 'CONFIRMED', `${user.name} (${user.role}) confirmed`);
+
   return { ok: true, status: 'CONFIRMED' };
 }
 
@@ -79,6 +107,14 @@ export function leaveGame(gameId, userId) {
   const store = useStore.getState();
   const game = store.getGame(gameId);
   if (!game) return { ok: false, error: 'Game not found.' };
+
+  // Data Security Rule: Match start locks refund and slot cancellations
+  const isMatchStarted = game.status === 'IN_PROGRESS' || game.status === 'COMPLETED';
+  const isMatchPast = new Date(`${game.date}T${game.startTime}`) <= new Date();
+  if (isMatchStarted || isMatchPast) {
+    return { ok: false, error: 'Match has already started. Refunds and cancellations are strictly disabled after match start.' };
+  }
+
   const gp = store.gamePlayers.find((p) => p.gameId === gameId && p.userId === userId && ['CONFIRMED', 'WAITLISTED'].includes(p.status));
   if (!gp) return { ok: false, error: 'You are not part of this game.' };
   if (userId === game.organizerId) return { ok: false, error: 'Organizers should cancel the game instead of leaving it.' };
@@ -93,6 +129,8 @@ export function leaveGame(gameId, userId) {
   }
   notify(userId, 'Left Game', `You left "${game.name}".`, 'GAME_CANCELLED', 'GAME', gameId);
 
+  store.logAudit(userId, 'GAME_LEFT', 'Games', gameId, gp.status, 'CANCELLED', `User left before match start (Refund: ${gp.paymentStatus === 'SUCCESS'})`);
+
   if (wasConfirmed) {
     if (game.status === 'FULL') store.transitionGame(gameId, 'OPEN_FOR_JOINING');
     promoteFromWaitlist(gameId);
@@ -101,6 +139,45 @@ export function leaveGame(gameId, userId) {
     const remaining = store.waitlistForGame(gameId);
     remaining.forEach((p, idx) => store.updateGamePlayer(p.id, { waitlistPosition: idx + 1 }));
   }
+  return { ok: true };
+}
+
+export function startGame(gameId, actingUserId) {
+  const store = useStore.getState();
+  const game = store.getGame(gameId);
+  const actingUser = store.getUser(actingUserId);
+  if (!game) return { ok: false, error: 'Game not found.' };
+  if (!actingUser) return { ok: false, error: 'User not authenticated.' };
+
+  if (game.status === 'IN_PROGRESS') return { ok: false, error: 'Match is already in progress.' };
+  if (['COMPLETED', 'CANCELLED'].includes(game.status)) return { ok: false, error: `Match is already ${game.status.toLowerCase()}.` };
+
+  const isOrganizer = game.organizerId === actingUserId;
+  const isManagerOrAdmin = ['SUPER_ADMIN', 'OPS_ADMIN', 'CLUB_MANAGER'].includes(actingUser.role);
+
+  // Security rule: Player creator cannot start until all slots are full
+  if (actingUser.role === 'PLAYER') {
+    if (!isOrganizer) return { ok: false, error: 'Only the match organizer or club managers can start this match.' };
+    if (game.currentPlayers < game.maxPlayers) {
+      return {
+        ok: false,
+        error: `All player slots must be filled to start match (${game.currentPlayers}/${game.maxPlayers} joined). Only Club Managers/Admins can force-start with open slots.`,
+      };
+    }
+  } else if (!isOrganizer && !isManagerOrAdmin) {
+    return { ok: false, error: 'You do not have permission to start this match.' };
+  }
+
+  const res = store.transitionGame(gameId, 'IN_PROGRESS');
+  if (!res.ok) return res;
+
+  store.logAudit(actingUserId, 'MATCH_STARTED', 'Games', gameId, game.status, 'IN_PROGRESS', `Match started by ${actingUser.name} (${actingUser.role})`);
+
+  const participants = store.playersForGame(gameId);
+  participants.forEach((p) => {
+    notify(p.userId, 'Match Started!', `"${game.name}" is now in progress! Good luck.`, 'GAME_PUBLISHED', 'GAME', gameId);
+  });
+
   return { ok: true };
 }
 
@@ -150,30 +227,64 @@ export function cancelGame(gameId, actingUserId, isAdmin = false) {
     notify(p.userId, 'Game Cancelled', `"${game.name}" scheduled for ${game.date} has been cancelled.`, 'GAME_CANCELLED', 'GAME', gameId);
   });
 
-  if (isAdmin) store.logAudit(actingUserId, 'GAME_CANCELLED', 'Games', gameId, game.status, 'CANCELLED');
+  store.logAudit(actingUserId, 'GAME_CANCELLED', 'Games', gameId, game.status, 'CANCELLED', isAdmin ? 'Cancelled by Administrator' : 'Cancelled by Organizer');
   return { ok: true };
 }
 
-/** Organizer-facing edit (Spec Section 12 — "Organizer actions: … Edit …").
- *  Venue (club/court) is intentionally left out of the editable patch here —
- *  changing it after players have joined would need a full re-check of court
- *  availability, so it's kept fixed once a game is created. Notifies every
- *  confirmed/waitlisted player if the date or time actually changes. */
+/** Organizer-facing edit with RBAC price protection and fee bounds */
 export function updateGameDetails(gameId, patch, actingUserId) {
   const store = useStore.getState();
   const game = store.getGame(gameId);
+  const actingUser = store.getUser(actingUserId);
   if (!game) return { ok: false, error: 'Game not found.' };
-  if (game.organizerId !== actingUserId) return { ok: false, error: 'Only the organizer can edit this game.' };
+
+  const isOrganizer = game.organizerId === actingUserId;
+  const isManagerOrAdmin = actingUser && ['SUPER_ADMIN', 'OPS_ADMIN', 'CLUB_MANAGER'].includes(actingUser.role);
+
+  if (!isOrganizer && !isManagerOrAdmin) {
+    return { ok: false, error: 'Only the organizer or designated administrators can edit this game.' };
+  }
+
   if (['CANCELLED', 'COMPLETED'].includes(game.status)) return { ok: false, error: `Cannot edit a game that is ${game.status.toLowerCase()}.` };
-  if (patch.maxPlayers !== undefined && patch.maxPlayers < game.currentPlayers) {
+
+  // Data Security Rule: Admin & Manager CANNOT alter price if game was created by a player
+  const isOriginallyCreatedByPlayer = game.createdByPlayer === true || game.creatorRole === 'PLAYER';
+  if (isOriginallyCreatedByPlayer && !isOrganizer && isManagerOrAdmin && patch.entryFee !== undefined) {
+    if (Number(patch.entryFee) !== Number(game.entryFee)) {
+      return { ok: false, error: 'Admins and Managers cannot alter the price of a player-created match.' };
+    }
+  }
+
+  // Price bounds enforcement: ₹200 to ₹200,000
+  let sanitizedPatch = { ...patch };
+  if (sanitizedPatch.entryFee !== undefined) {
+    let fee = Number(sanitizedPatch.entryFee) || 0;
+    if (fee > 0) {
+      if (fee < 200) fee = 200;
+      if (fee > 200000) fee = 200000;
+    }
+    sanitizedPatch.entryFee = fee;
+  }
+
+  if (sanitizedPatch.maxPlayers !== undefined && sanitizedPatch.maxPlayers < game.currentPlayers) {
     return { ok: false, error: `Maximum players cannot be less than the ${game.currentPlayers} player(s) already confirmed.` };
   }
-  const startTime = patch.startTime || game.startTime;
-  const endTime = patch.endTime || game.endTime;
+  const startTime = sanitizedPatch.startTime || game.startTime;
+  const endTime = sanitizedPatch.endTime || game.endTime;
   if (startTime >= endTime) return { ok: false, error: 'End time must be after start time.' };
 
-  const rescheduled = (patch.date && patch.date !== game.date) || (patch.startTime && patch.startTime !== game.startTime) || (patch.endTime && patch.endTime !== game.endTime);
-  store.updateGame(gameId, patch);
+  const rescheduled = (sanitizedPatch.date && sanitizedPatch.date !== game.date) || (sanitizedPatch.startTime && sanitizedPatch.startTime !== game.startTime) || (sanitizedPatch.endTime && sanitizedPatch.endTime !== game.endTime);
+  store.updateGame(gameId, sanitizedPatch);
+
+  store.logAudit(
+    actingUserId,
+    'GAME_UPDATED',
+    'Games',
+    gameId,
+    null,
+    JSON.stringify(sanitizedPatch),
+    `Updated by ${actingUser?.name || 'User'} (${actingUser?.role || 'PLAYER'})`
+  );
 
   if (rescheduled) {
     const participants = [...store.playersForGame(gameId), ...store.waitlistForGame(gameId)].filter((p) => p.userId !== actingUserId);
