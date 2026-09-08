@@ -27,6 +27,7 @@ const NAV_ITEMS = [
 ];
 
 import RoleActivityTrackerModal from '../ui/RoleActivityTrackerModal';
+import BrandLogo from '../ui/BrandLogo';
 
 export default function AdminShell() {
   const user = useCurrentUser();
@@ -38,7 +39,7 @@ export default function AdminShell() {
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-2 border-b border-ink-800 px-5">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-brand-600 text-lg">🥒</span>
+        <BrandLogo size="md" />
         <div>
           <p className="text-sm font-bold text-white">PicklePlay</p>
           <p className="text-[11px] text-ink-400">{user ? ROLE_LABELS[user.role] : ''}</p>

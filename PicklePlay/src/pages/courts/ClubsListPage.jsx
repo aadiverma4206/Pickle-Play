@@ -65,8 +65,25 @@ export default function ClubsListPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((club) => (
             <Card key={club.id} className="flex flex-col overflow-hidden">
-              <div className={`flex h-28 items-center justify-center bg-gradient-to-br ${toneFor(club.id)} text-white`}>
-                <Building2 className="size-10 opacity-90" />
+              <div className="relative h-32 w-full overflow-hidden bg-ink-900">
+                {club.photos && club.photos[0] ? (
+                  <>
+                    <img
+                      src={club.photos[0]}
+                      alt={club.name}
+                      className="size-full object-cover transition-transform duration-500 hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink-950/80 via-ink-950/20 to-transparent" />
+                  </>
+                ) : (
+                  <div className={`flex size-full items-center justify-center bg-gradient-to-br ${toneFor(club.id)} text-white`}>
+                    <Building2 className="size-10 opacity-90" />
+                  </div>
+                )}
+                <span className="absolute bottom-2 left-3 inline-flex items-center gap-1 rounded bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                  <Landmark className="size-3 text-brand-400" /> {club.city}
+                </span>
               </div>
               <CardBody className="flex-1 space-y-3">
                 <div>

@@ -5,6 +5,7 @@ import { Home, Search, MapPinned, Users, Trophy, LineChart, CalendarCheck, Award
 import NotificationBell from './NotificationBell';
 import DemoUserSwitcher from './DemoUserSwitcher';
 import RoleActivityTrackerModal from '../ui/RoleActivityTrackerModal';
+import BrandLogo from '../ui/BrandLogo';
 
 const DESKTOP_NAV = [
   { to: '/home', label: 'Home', icon: Home },
@@ -32,8 +33,7 @@ export default function PlayerShell() {
       <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
           <NavLink to="/home" className="flex items-center gap-2 shrink-0">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-brand-600 text-lg">🥒</span>
-            <span className="hidden text-lg font-bold text-ink-900 sm:block">PicklePlay</span>
+            <BrandLogo size="md" showText={true} />
           </NavLink>
           <nav className="hidden flex-1 items-center gap-1 lg:flex">
             {DESKTOP_NAV.map(({ to, label, icon: Icon }) => (

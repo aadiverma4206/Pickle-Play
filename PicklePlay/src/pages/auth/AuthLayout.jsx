@@ -1,10 +1,11 @@
+import BrandLogo from '../../components/ui/BrandLogo';
+
 export default function AuthLayout({ title, subtitle, children }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-ink-50 to-court-50 px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-brand-600 text-xl">🥒</span>
-          <span className="text-xl font-bold text-ink-900">PicklePlay</span>
+        <div className="mb-6 flex items-center justify-center">
+          <BrandLogo size="lg" showText={true} textClassName="text-2xl" />
         </div>
         <div className="rounded-2xl border border-ink-200 bg-white p-7 shadow-sm">
           <h1 className="text-xl font-semibold text-ink-900">{title}</h1>

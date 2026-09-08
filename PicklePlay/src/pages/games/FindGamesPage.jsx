@@ -14,7 +14,7 @@ import CreateGameModal from './CreateGameModal';
 
 const GAME_TYPES = ['Singles', 'Doubles', 'Mixed Doubles', 'Open Play', 'Friendly', 'Competitive'];
 const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
-const VISIBLE_STATUSES = ['PUBLISHED', 'OPEN_FOR_JOINING', 'FULL'];
+const VISIBLE_STATUSES = ['PUBLISHED', 'OPEN_FOR_JOINING', 'FULL', 'IN_PROGRESS'];
 
 export default function FindGamesPage() {
   const [params, setParams] = useSearchParams();
@@ -76,12 +76,20 @@ export default function FindGamesPage() {
             const club = clubs.find((c) => c.id === g.clubId);
             const organizer = useStore.getState().getUser(g.organizerId);
             const joined = user && useStore.getState().isUserInGame(g.id, user.id);
+            const isLive = g.status === 'IN_PROGRESS';
             return (
               <Card key={g.id} className="flex flex-col">
                 <CardBody className="flex-1 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-sm font-semibold text-ink-900">{g.name}</h3>
-                    <Badge status={g.status} />
+                    {isLive ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 px-2.5 py-0.5 text-xs font-bold text-red-600 border border-red-500/30 animate-pulse">
+                        <span className="size-2 rounded-full bg-red-500 animate-ping"></span>
+                        LIVE
+                      </span>
+                    ) : (
+                      <Badge status={g.status} />
+                    )}
                   </div>
                   <div className="space-y-1 text-xs text-ink-500">
                     <p className="flex items-center gap-1.5"><MapPin className="size-3.5" /> {club?.name}</p>
@@ -95,8 +103,12 @@ export default function FindGamesPage() {
                   <p className="text-xs text-ink-400">Organized by {organizer?.name}</p>
                 </CardBody>
                 <div className="border-t border-ink-100 px-5 py-3">
-                  <Button className="w-full" variant={joined ? 'secondary' : 'primary'} onClick={() => navigate(`/games/${g.id}`)}>
-                    {joined ? 'View Details' : g.status === 'FULL' ? 'Join Waitlist' : 'View & Join'}
+                  <Button
+                    className="w-full"
+                    variant={joined ? 'secondary' : isLive ? 'court' : 'primary'}
+                    onClick={() => navigate(`/games/${g.id}`)}
+                  >
+                    {joined ? 'View Match' : isLive ? 'Spectate Live' : g.status === 'FULL' ? 'Join Waitlist' : 'View & Join'}
                   </Button>
                 </div>
               </Card>

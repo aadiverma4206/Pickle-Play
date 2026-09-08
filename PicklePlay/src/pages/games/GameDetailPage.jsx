@@ -87,16 +87,28 @@ export default function GameDetailPage() {
       return;
     }
     askConfirm({
-      title: isOrganizer || isAdminViewer ? 'Cancel this game?' : 'Leave this game?',
-      message: isOrganizer || isAdminViewer
-        ? 'All players will be notified and 100% refunded.'
-        : 'Your slot will be released and 100% refund processed before match start.',
-      confirmLabel: isOrganizer || isAdminViewer ? 'Cancel Game' : 'Leave Game',
+      title: 'Leave this game?',
+      message: 'Your slot will be released and 100% refund processed before match start.',
+      confirmLabel: 'Leave Game',
       tone: 'danger',
       onConfirm: () => {
-        const r = (isOrganizer || isAdminViewer) ? cancelGame(game.id, user.id, isAdminViewer) : leaveGame(game.id, user.id);
+        const r = leaveGame(game.id, user.id);
         if (!r.ok) return toast(r.error, 'error');
-        toast(isOrganizer || isAdminViewer ? 'Game cancelled and players notified.' : 'You left the game and refund was issued.', 'success');
+        toast('You left the game and refund was issued.', 'success');
+      },
+    });
+  };
+
+  const handleCancelGame = () => {
+    askConfirm({
+      title: 'Cancel this match?',
+      message: 'All confirmed players will be notified and 100% refunded. This action cannot be undone.',
+      confirmLabel: 'Cancel Match',
+      tone: 'danger',
+      onConfirm: () => {
+        const r = cancelGame(game.id, user.id, isAdminViewer);
+        if (!r.ok) return toast(r.error, 'error');
+        toast('Match cancelled and all players refunded.', 'success');
       },
     });
   };
@@ -291,7 +303,7 @@ export default function GameDetailPage() {
             )}
 
             {canEdit && <Button variant="secondary" icon={Pencil} onClick={() => setEditModalOpen(true)}>Edit Details</Button>}
-            {canCancel && <Button variant="outlineDanger" icon={XCircle} onClick={handleLeave}>Cancel Match</Button>}
+            {canCancel && <Button variant="outlineDanger" icon={XCircle} onClick={handleCancelGame}>Cancel Match</Button>}
             {canEnterResult && <Button variant="court" icon={ClipboardCheck} onClick={() => setResultModalOpen(true)}>Enter Result</Button>}
             {isSuperAdmin && (
               <Button variant="outlineDanger" icon={Trash2} onClick={handleDelete}>Delete Permanently</Button>

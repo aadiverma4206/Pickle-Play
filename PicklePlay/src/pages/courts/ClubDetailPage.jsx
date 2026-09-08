@@ -33,9 +33,27 @@ export default function ClubDetailPage() {
         <ArrowLeft className="size-4" /> Back to Clubs
       </button>
 
-      <Card className="mb-6 overflow-hidden">
-        <div className="flex h-32 items-center justify-center bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-          <Building2 className="size-12 opacity-90" />
+      <Card className="mb-6 overflow-hidden border border-ink-100 shadow-md">
+        <div className="relative h-44 sm:h-56 w-full overflow-hidden bg-ink-900 text-white">
+          {club.photos && club.photos[0] ? (
+            <>
+              <img
+                src={club.photos[0]}
+                alt={club.name}
+                className="size-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-ink-950/40 to-transparent" />
+            </>
+          ) : (
+            <div className="flex size-full items-center justify-center bg-gradient-to-br from-brand-500 to-brand-700">
+              <Building2 className="size-14 opacity-90" />
+            </div>
+          )}
+          <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between">
+            <span className="rounded-full bg-court-500/20 px-3 py-1 text-xs font-bold text-court-300 backdrop-blur-md border border-court-400/30 uppercase tracking-wider">
+              {club.city} Premier Sports Facility
+            </span>
+          </div>
         </div>
         <CardBody className="space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-2">

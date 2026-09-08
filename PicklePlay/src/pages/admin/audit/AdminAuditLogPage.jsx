@@ -35,20 +35,38 @@ export default function AdminAuditLogPage() {
   const columns = [
     {
       key: 'admin',
-      header: 'Admin',
+      header: 'Actor / Role',
       render: (l) => {
         const admin = store.getUser(l.adminId);
+        const name = admin?.name || l.actorName || l.adminId;
+        const role = l.actorRole || admin?.role || 'STAFF';
         return (
           <div className="flex items-center gap-2.5">
-            <Avatar name={admin?.name || '?'} size="sm" />
-            <span className="font-medium text-ink-900">{admin?.name || l.adminId}</span>
+            <Avatar name={name} size="sm" />
+            <div>
+              <p className="font-medium text-ink-900 leading-tight">{name}</p>
+              <span className="inline-block mt-0.5 rounded bg-ink-100 px-1.5 py-0.2 text-[10px] font-semibold text-ink-600">
+                {role}
+              </span>
+            </div>
           </div>
         );
       },
     },
     { key: 'action', header: 'Action', render: (l) => <Badge tone="brand">{l.action.replaceAll('_', ' ')}</Badge> },
     { key: 'module', header: 'Module', render: (l) => <Badge tone="neutral">{l.module}</Badge> },
-    { key: 'recordId', header: 'Record', render: (l) => <span className="font-mono text-xs text-ink-500">{l.recordId}</span> },
+    {
+      key: 'recordId',
+      header: 'Security Reference',
+      render: (l) => (
+        <div>
+          <span className="font-mono text-xs text-ink-700 font-semibold">{l.recordId}</span>
+          {l.securityTag && (
+            <p className="font-mono text-[10px] text-emerald-600 font-medium">{l.securityTag}</p>
+          )}
+        </div>
+      ),
+    },
     {
       key: 'change',
       header: 'Change',
